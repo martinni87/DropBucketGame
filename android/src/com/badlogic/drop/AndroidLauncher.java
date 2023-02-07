@@ -1,10 +1,9 @@
-package com.badlogic.group;
+package com.badlogic.drop;
 
 import android.os.Bundle;
 
 import com.badlogic.gdx.backends.android.AndroidApplication;
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
-import com.badlogic.group.Drop;
 
 public class AndroidLauncher extends AndroidApplication {
 	@Override

@@ -1,8 +1,7 @@
-package com.badlogic.group;
+package com.badlogic.drop;
 
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
-import com.badlogic.group.Drop;
 
 /**
  * <strong>Please note that <u>on macOS</u> your application needs to be started with the <u>-XstartOnFirstThread JVM argument</u></strong>
