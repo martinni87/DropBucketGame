@@ -8,11 +8,16 @@ import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.utils.TimeUtils;
+
+import java.util.Iterator;
 
 public class Drop extends ApplicationAdapter {
 	//Variables to load assets
@@ -35,10 +40,15 @@ public class Drop extends ApplicationAdapter {
 
 	//Rectangles to position Textures
 	private Rectangle bucket;
-	private Rectangle drop;
+	//List of rectangles for raindrops (Class array from libgdx, less garbage)
+	private Array<Rectangle> raindrops;
+	//Last time we spawned a drop, to keep track of it
+	private long lastDropTime; //Nanoseconds
 
 	//Positioning vector for the bucket when screen is touched
 	Vector3 touchPos;
+
+
 
 	@Override
 	public void create () {
@@ -54,11 +64,11 @@ public class Drop extends ApplicationAdapter {
 		bucketImage   = new Texture(Gdx.files.internal("img/bucket.png"));
 
 		// load the drop sound effect and the rain background "music"
-		dropSound 	 = Gdx.audio.newSound(Gdx.files.internal("sounds/drop.wav"));
-		shootSound 	 = Gdx.audio.newSound(Gdx.files.internal("sounds/shoot.mp3"));
+		dropSound 	  = Gdx.audio.newSound(Gdx.files.internal("sounds/drop.wav"));
+		shootSound 	  = Gdx.audio.newSound(Gdx.files.internal("sounds/shoot.mp3"));
 		loopingMusic1 = Gdx.audio.newMusic(Gdx.files.internal("sounds/looping_calm.mp3"));
 		loopingMusic2 = Gdx.audio.newMusic(Gdx.files.internal("sounds/looping_play.mp3"));
-		rainMusic 	 = Gdx.audio.newMusic(Gdx.files.internal("sounds/rain.mp3"));
+		rainMusic 	  = Gdx.audio.newMusic(Gdx.files.internal("sounds/rain.mp3"));
 
 		// start the playback of the background music immediately
 		loopingMusic1.setLooping(true);
@@ -80,6 +90,10 @@ public class Drop extends ApplicationAdapter {
 		bucket.width = 64;
 		bucket.height = 64;
 
+		//Instantiating raindrops array and spawning drops on screen
+		raindrops = new Array<Rectangle>();
+		spawnRaindrop(); //Here we spawn the first time the raindrops
+
 	}
 
 	@Override
@@ -88,11 +102,8 @@ public class Drop extends ApplicationAdapter {
 		ScreenUtils.clear(0, 0, 0.2f, 1);
 		camera.update();
 
-		//Spritebatch to use, start, draw bucketImage in coordinates x y defined in bucket rectangle,end.
+		//Set camera onto batch
 		batch.setProjectionMatrix(camera.combined);
-		batch.begin();
-		batch.draw(bucketImage, bucket.x, bucket.y);
-		batch.end();
 
 		//After loading Textures, we set the position of the bucket onto the users clicks:
 		//If there's a touch or click, we enter the if statement
@@ -125,10 +136,67 @@ public class Drop extends ApplicationAdapter {
 		if(bucket.x > 800 - 64){
 			bucket.x = 800 - 64;
 		}
+
+		//After spawning the first time, we check time passed and spawn again
+		if(TimeUtils.nanoTime() - lastDropTime > 1000000000){
+			spawnRaindrop();
+		}
+
+		//Making raindrops movement at 200pps. If the raindrop reaches the bottom of the screen, then remove it
+		for (Iterator<Rectangle> iter = raindrops.iterator(); iter.hasNext();) {
+			Rectangle raindrop = iter.next();
+			raindrop.y -= 200 * Gdx.graphics.getDeltaTime();
+			//If the raindrop reaches the bottom of the screen, then remove it
+			if(raindrop.y + 64 < 0){
+				iter.remove();
+			}
+			//If the raindrop hits the bucket, it should get into it. So we remove it and play the drop sound.
+			if(raindrop.overlaps(bucket)) {
+				dropSound.play();
+				iter.remove();
+			}
+		}
+
+		//Begin to render calling the batch
+		//Spritebatch to use, start...
+		batch.begin();
+		//Draw bucketImage in coordinates x y defined in bucket rectangle.
+		batch.draw(bucketImage, bucket.x, bucket.y);
+		//Draw raindrops
+		for (Rectangle raindrop: raindrops){
+			batch.draw(dropletBlue, raindrop.x, raindrop.y);
+		}
+		//End batch
+		batch.end();
+
 	}
 	
 	@Override
 	public void dispose () {
+		//Cleaning up. Disposables don't get erased by Java Garbage Collector
+		dropletBlue.dispose();
+		bucketImage.dispose();
+		dropSound.dispose();
+		rainMusic.dispose();
+		batch.dispose();
+	}
 
+	/*
+	OWN METHODS
+	 */
+
+	/**
+	 * spawnRaindrop() es a method to facilitate the creation of raindrops.
+	 * Instantiates a Rectangle object, and sets a random position at top edge of the screen
+	 * Then it adds the drop to the raindrops array
+	 */
+	private void spawnRaindrop() {
+		Rectangle raindrop = new Rectangle();
+		raindrop.x = MathUtils.random(0, 800-64); //random number between 0 and "800-64"
+		raindrop.y = 480;
+		raindrop.width = 64;
+		raindrop.height = 64;
+		raindrops.add(raindrop);
+		lastDropTime = TimeUtils.nanoTime();
 	}
 }
