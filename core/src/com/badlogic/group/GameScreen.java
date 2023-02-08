@@ -1,6 +1,5 @@
-package com.badlogic.drop;
+package com.badlogic.group;
 
-import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
@@ -8,12 +7,9 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.TimeUtils;
@@ -24,8 +20,7 @@ public class GameScreen implements Screen {
     final Drop game;
 
     //Variables to load assets
-    private Image backgroundGame;
-    private Image backgroundMenu;
+    private Texture backgroundGame;
     private Texture dropletBlue;
     private Texture dropletGrey;
     private Texture dropletYellow;
@@ -33,9 +28,8 @@ public class GameScreen implements Screen {
     private Texture bucketImage;
     private Sound dropSound;
     private Sound shootSound;
-    private Music loopingMusic1;
-    private Music loopingMusic2;
-    private Music rainMusic;
+    private Music playMusic;
+
 
     //Camera and spritebatch
     private OrthographicCamera camera;
@@ -58,9 +52,8 @@ public class GameScreen implements Screen {
         //Instantiate the game from Drop Class.
         this.game = game;
 
-        // load big pictures
-//		backgroundGame = new Image((Drawable) Gdx.files.internal("img/background.png"));
-//		backgroundMenu = new Image((Drawable) Gdx.files.internal("img/background_menu.png"));
+        // load background
+		backgroundGame = new Texture(Gdx.files.internal("img/background.png"));
 
         // load the images for the droplet and the bucket, 64x64 pixels each
         dropletBlue   = new Texture(Gdx.files.internal("img/droplet_blue.png"));
@@ -70,16 +63,12 @@ public class GameScreen implements Screen {
         bucketImage   = new Texture(Gdx.files.internal("img/bucket.png"));
 
         // load the drop sound effect and the rain background "music"
-        dropSound 	  = Gdx.audio.newSound(Gdx.files.internal("sounds/drop.wav"));
-        shootSound 	  = Gdx.audio.newSound(Gdx.files.internal("sounds/shoot.mp3"));
-        loopingMusic1 = Gdx.audio.newMusic(Gdx.files.internal("sounds/looping_calm.mp3"));
-        loopingMusic2 = Gdx.audio.newMusic(Gdx.files.internal("sounds/looping_play.mp3"));
-        rainMusic 	  = Gdx.audio.newMusic(Gdx.files.internal("sounds/rain.mp3"));
+        dropSound  = Gdx.audio.newSound(Gdx.files.internal("sounds/drop.wav"));
+        shootSound = Gdx.audio.newSound(Gdx.files.internal("sounds/shoot.mp3"));
+        playMusic  = Gdx.audio.newMusic(Gdx.files.internal("sounds/looping_play.mp3"));
 
         // SETS the playback of the background music
-        loopingMusic1.setLooping(true);
-        rainMusic.setLooping(true);
-
+        playMusic.setLooping(true);
 
         //Creating the camera of 800x480 resolution
         camera = new OrthographicCamera();
@@ -98,7 +87,6 @@ public class GameScreen implements Screen {
         //Instantiating raindrops array and spawning drops on screen
         raindrops = new Array<Rectangle>();
         spawnRaindrop(); //Here we spawn the first time the raindrops
-
     }
 
     /*
@@ -135,10 +123,14 @@ public class GameScreen implements Screen {
         //Begin to render calling the batch
         //Spritebatch to use, start...
         game.batch.begin();
-        //Every time a drops get collected, we show the number of drops at the left-top corner
-        game.font.draw(game.batch, "Drops Collected: " + dropsGathered, 0, 480);
         //Draw bucketImage in coordinates x y defined in bucket rectangle.
+        game.batch.draw(backgroundGame,0,0);
+        //Draw the background picture
         game.batch.draw(bucketImage, bucket.x, bucket.y);
+        //Every time a drops get collected, we show the number of drops at the left-top corner
+
+        game.normalFont.draw(game.batch, "Gotas recogidas: " + dropsGathered, 40, 440);
+
         //Draw raindrops
         for (Rectangle raindrop: raindrops){
             game.batch.draw(dropletBlue, raindrop.x, raindrop.y);
@@ -206,8 +198,7 @@ public class GameScreen implements Screen {
     @Override
     public void show() {
         // Starts the playback of the background music when the screen is shown
-        loopingMusic1.play();
-        rainMusic.play();
+        playMusic.play();
     }
 
     @Override
@@ -236,7 +227,7 @@ public class GameScreen implements Screen {
         dropletBlue.dispose();
         bucketImage.dispose();
         dropSound.dispose();
-        rainMusic.dispose();
+        playMusic.dispose();
 //        batch.dispose();
     }
 

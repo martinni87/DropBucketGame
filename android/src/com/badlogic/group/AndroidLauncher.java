@@ -1,4 +1,4 @@
-package com.badlogic.drop;
+package com.badlogic.group;
 
 import android.os.Bundle;
 
