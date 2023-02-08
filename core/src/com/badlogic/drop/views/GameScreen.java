@@ -1,5 +1,7 @@
-package com.badlogic.drop;
+package com.badlogic.drop.views;
 
+import com.badlogic.drop.Drop;
+import com.badlogic.drop.views.MainMenu;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputAdapter;
@@ -10,6 +12,8 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector3;
@@ -20,23 +24,18 @@ import com.badlogic.gdx.utils.TimeUtils;
 import java.util.Iterator;
 
 public class GameScreen implements Screen {
-    final Drop game;
+    Drop game;
 
     //Variables to load assets
     private Texture backgroundGame;
     private Texture dropletBlue;
-    private Texture dropletGrey;
-    private Texture dropletYellow;
-    private Texture dropletRed;
     private Texture bucketImage;
+    public BitmapFont gameText;
     private Sound dropSound;
-    private Sound shootSound;
-    private Music playMusic;
-
 
     //Camera and spritebatch
     private OrthographicCamera camera;
-//    private SpriteBatch batch;
+    private SpriteBatch batch;
 
     //Rectangles to position Textures
     private Rectangle bucket;
@@ -53,22 +52,24 @@ public class GameScreen implements Screen {
     //So we use a Constructor
 
     public GameScreen (final Drop game){
-        //Instantiate the game from Drop Class.
+        //Instantiate the game from Drop Class, new batch and camera
         this.game = game;
+        batch = new SpriteBatch();
+        camera = new OrthographicCamera();
+        camera.setToOrtho(false, 800, 480);
 
-        // load background
-        backgroundGame = new Texture(Gdx.files.internal("img/background.png"));
+        //Loading new fonts
+        gameText = new BitmapFont();
+
+        // load background for game
+        backgroundGame = new Texture(Gdx.files.internal("img/background_game.png"));
 
         // load the images for the droplet and the bucket, 64x64 pixels each
         dropletBlue   = new Texture(Gdx.files.internal("img/droplet_blue.png"));
-        dropletGrey   = new Texture(Gdx.files.internal("img/droplet_grey.png"));
-        dropletYellow = new Texture(Gdx.files.internal("img/droplet_yellow.png"));
-        dropletRed    = new Texture(Gdx.files.internal("img/droplet_red.png"));
         bucketImage   = new Texture(Gdx.files.internal("img/bucket.png"));
 
         // load the drop sound effect and the rain background "music"
         dropSound  = Gdx.audio.newSound(Gdx.files.internal("sounds/drop.wav"));
-        shootSound = Gdx.audio.newSound(Gdx.files.internal("sounds/shoot.mp3"));
 
         //Creating the camera of 800x480 resolution
         camera = new OrthographicCamera();
@@ -87,28 +88,6 @@ public class GameScreen implements Screen {
         //Instantiating raindrops array and spawning drops on screen
         raindrops = new Array<Rectangle>();
         spawnRaindrop(); //Here we spawn the first time the raindrops
-
-        Gdx.input.setCatchKey(Input.Keys.ESCAPE, true);
-
-        //Creating an inputProcessor to handle back key actions
-        InputProcessor backProcessor = new InputAdapter(){
-            @Override
-            public boolean keyDown(int keycode){
-                if ((keycode == Input.Keys.ESCAPE) || (keycode == Input.Keys.BACK)) {
-                    Gdx.app.log("MARTIN DEBUG", "GO BACK");
-                    dispose();
-                    game.setScreen(new MainMenuScreen(game));
-                    return false;
-                }
-                return false;
-            }
-        };
-        //Adding it to a multiplexer
-        InputMultiplexer multiplexer = new InputMultiplexer(backProcessor);
-        Gdx.input.setInputProcessor(multiplexer);
-
-        //Catch back key press to avoid bad exiting the app
-        Gdx.input.setCatchKey(Input.Keys.BACK, true);
     }
 
     /*
@@ -136,30 +115,35 @@ public class GameScreen implements Screen {
     @Override
     public void render (float delta) {
         //Render screen clear with dark blue color
-        ScreenUtils.clear(0, 0, 0.2f, 1);
+        ScreenUtils.clear(0, 0, 0, 1);
         camera.update();
 
         //Set camera render its matrix
-        game.batch.setProjectionMatrix(camera.combined);
+        batch.setProjectionMatrix(camera.combined);
 
         //Begin to render calling the batch
         //Spritebatch to use, start...
-        game.batch.begin();
+        batch.begin();
         //Draw bucketImage in coordinates x y defined in bucket rectangle.
-        game.batch.draw(backgroundGame,0,0);
+        batch.draw(backgroundGame,0,0);
         //Draw the background picture
-        game.batch.draw(bucketImage, bucket.x, bucket.y);
+        batch.draw(bucketImage, bucket.x, bucket.y);
         //Every time a drops get collected, we show the number of drops at the left-top corner
 
-        game.normalFont.draw(game.batch, "Gotas recogidas: " + dropsGathered, 40, 440);
+        gameText.draw(batch, "Gotas recogidas: " + dropsGathered, 40, 440);
 
         //Draw raindrops
         for (Rectangle raindrop: raindrops){
-            game.batch.draw(dropletBlue, raindrop.x, raindrop.y);
+            batch.draw(dropletBlue, raindrop.x, raindrop.y);
         }
         //End batch
-        game.batch.end();
+        batch.end();
 
+
+        /*
+        USER TOUCH INPUTS
+         */
+        actionForESCKey();
         //After loading Textures, we set the position of the bucket onto the users clicks:
         //If there's a touch or click, we enter the if statement
         if(Gdx.input.isTouched()) {
@@ -174,7 +158,7 @@ public class GameScreen implements Screen {
         }
 
         /*
-        USER INPUTS
+        USER KEYUBOARD INPUTS
          */
         //We also set the movement for the desktop and web environment with left and right keys pressed
         //Speed at 200 units per second
@@ -249,8 +233,28 @@ public class GameScreen implements Screen {
         dropletBlue.dispose();
         bucketImage.dispose();
         dropSound.dispose();
-//        playMusic.dispose();
-//        batch.dispose();
+        batch.dispose();
+    }
+
+    public void actionForESCKey(){
+        //Creating an inputProcessor to handle back key actions
+        InputProcessor backProcessor = new InputAdapter(){
+            @Override
+            public boolean keyDown(int keycode){
+                if ((keycode == Input.Keys.ESCAPE) || (keycode == Input.Keys.BACK)) {
+                    Gdx.app.log("MARTIN DEBUG", "GO BACK");
+                    
+                    return false;
+                }
+                return false;
+            }
+        };
+        //Adding it to a multiplexer
+        InputMultiplexer multiplexer = new InputMultiplexer(backProcessor);
+        Gdx.input.setInputProcessor(multiplexer);
+
+        //Catch back key press to avoid bad exiting the app
+        Gdx.input.setCatchKey(Input.Keys.BACK, true);
     }
 
 
