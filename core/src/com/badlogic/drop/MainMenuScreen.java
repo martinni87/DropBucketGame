@@ -1,15 +1,14 @@
-package com.badlogic.group;
+package com.badlogic.drop;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.InputMultiplexer;
+import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.audio.Music;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
-import com.badlogic.gdx.utils.ScreenUtils;
 
 public class MainMenuScreen implements Screen {
 
@@ -42,43 +41,31 @@ public class MainMenuScreen implements Screen {
 
     @Override
     public void show() {
-    }
-
-    @Override
-    public void render(float delta) {
-//        ScreenUtils.clear(0, 0, 0.2f, 1);
-
-        camera.update();
-        game.batch.setProjectionMatrix(camera.combined);
-
-        game.batch.begin();
-//        game.batch.setColor(Color.GRAY);
-        game.batch.draw(background, 0, 0);
-        game.titleFont.draw(game.batch, titleText, 50,100);
-
-        game.batch.enableBlending();
-        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-        Gdx.gl.glEnable(GL20.GL_BLEND);
-        game.normalFont.draw(game.batch, normalText, 50,300);
-        Gdx.gl.glDisable(GL20.GL_BLEND);
-        game.batch.disableBlending();
-
-
-
-        game.batch.draw(bucketImage, 650, 200);
-
-        game.batch.end();
-
         game.rainMusic.setVolume(0.3f);
         game.rainMusic.play();
         game.menuMusic.setVolume(0.3f);
         game.menuMusic.play();
+    }
+
+    @Override
+    public void render(float delta) {
+        camera.update();
+        game.batch.setProjectionMatrix(camera.combined);
+
+        game.batch.begin();
+        game.batch.draw(background, 0, 0);
+        game.titleFont.draw(game.batch, titleText, 50,100);
+
+//        game.batch.enableBlending();
+//        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+//        Gdx.gl.glEnable(GL20.GL_BLEND);
+        game.normalFont.draw(game.batch, normalText, 50,300);
+//        Gdx.gl.glDisable(GL20.GL_BLEND);
+//        game.batch.disableBlending();
+        game.batch.draw(bucketImage, 650, 200);
+        game.batch.end();
 
         if (Gdx.input.isTouched()) {
-            game.rainMusic.stop();
-            game.rainMusic.dispose();
-            game.menuMusic.stop();
-            game.menuMusic.dispose();
             game.setScreen(new GameScreen(game));
             dispose();
         }
@@ -108,7 +95,29 @@ public class MainMenuScreen implements Screen {
     public void dispose() {
     }
 
-    public void blendingText(){
+//    public void blendingText(){
+//
+//    }
 
-    }
+//    public void actionForESCKey(){
+//        //Creating an inputProcessor to handle back key actions
+//        InputProcessor backProcessor = new InputAdapter(){
+//            @Override
+//            public boolean keyDown(int keycode){
+//                if ((keycode == Input.Keys.ESCAPE) || (keycode == Input.Keys.BACK)) {
+//                    Gdx.app.log("MARTIN DEBUG", "EXIT GAME");
+//                    dispose();
+//                    Gdx.app.exit();
+//                    return false;
+//                }
+//                return false;
+//            }
+//        };
+//        //Adding it to a multiplexer
+//        InputMultiplexer multiplexer = new InputMultiplexer(backProcessor);
+//        Gdx.input.setInputProcessor(multiplexer);
+//
+//        //Catch back key press to avoid bad exiting the app
+//        Gdx.input.setCatchKey(Input.Keys.BACK, true);
+//    }
 }

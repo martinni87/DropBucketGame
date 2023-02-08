@@ -1,4 +1,4 @@
-package com.badlogic.group;
+package com.badlogic.drop;
 
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;

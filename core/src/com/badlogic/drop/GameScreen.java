@@ -1,7 +1,10 @@
-package com.badlogic.group;
+package com.badlogic.drop;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.InputMultiplexer;
+import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
@@ -48,12 +51,13 @@ public class GameScreen implements Screen {
 
     //Because this class doesn't extends from Game class, we don't have create() method.
     //So we use a Constructor
+
     public GameScreen (final Drop game){
         //Instantiate the game from Drop Class.
         this.game = game;
 
         // load background
-		backgroundGame = new Texture(Gdx.files.internal("img/background.png"));
+        backgroundGame = new Texture(Gdx.files.internal("img/background.png"));
 
         // load the images for the droplet and the bucket, 64x64 pixels each
         dropletBlue   = new Texture(Gdx.files.internal("img/droplet_blue.png"));
@@ -65,10 +69,6 @@ public class GameScreen implements Screen {
         // load the drop sound effect and the rain background "music"
         dropSound  = Gdx.audio.newSound(Gdx.files.internal("sounds/drop.wav"));
         shootSound = Gdx.audio.newSound(Gdx.files.internal("sounds/shoot.mp3"));
-        playMusic  = Gdx.audio.newMusic(Gdx.files.internal("sounds/looping_play.mp3"));
-
-        // SETS the playback of the background music
-        playMusic.setLooping(true);
 
         //Creating the camera of 800x480 resolution
         camera = new OrthographicCamera();
@@ -87,6 +87,28 @@ public class GameScreen implements Screen {
         //Instantiating raindrops array and spawning drops on screen
         raindrops = new Array<Rectangle>();
         spawnRaindrop(); //Here we spawn the first time the raindrops
+
+        Gdx.input.setCatchKey(Input.Keys.ESCAPE, true);
+
+        //Creating an inputProcessor to handle back key actions
+        InputProcessor backProcessor = new InputAdapter(){
+            @Override
+            public boolean keyDown(int keycode){
+                if ((keycode == Input.Keys.ESCAPE) || (keycode == Input.Keys.BACK)) {
+                    Gdx.app.log("MARTIN DEBUG", "GO BACK");
+                    dispose();
+                    game.setScreen(new MainMenuScreen(game));
+                    return false;
+                }
+                return false;
+            }
+        };
+        //Adding it to a multiplexer
+        InputMultiplexer multiplexer = new InputMultiplexer(backProcessor);
+        Gdx.input.setInputProcessor(multiplexer);
+
+        //Catch back key press to avoid bad exiting the app
+        Gdx.input.setCatchKey(Input.Keys.BACK, true);
     }
 
     /*
@@ -198,7 +220,7 @@ public class GameScreen implements Screen {
     @Override
     public void show() {
         // Starts the playback of the background music when the screen is shown
-        playMusic.play();
+//        playMusic.play();
     }
 
     @Override
@@ -227,7 +249,7 @@ public class GameScreen implements Screen {
         dropletBlue.dispose();
         bucketImage.dispose();
         dropSound.dispose();
-        playMusic.dispose();
+//        playMusic.dispose();
 //        batch.dispose();
     }
 
