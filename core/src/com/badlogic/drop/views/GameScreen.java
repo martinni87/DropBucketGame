@@ -1,7 +1,8 @@
 package com.badlogic.drop.views;
 
+import static java.lang.Thread.sleep;
+
 import com.badlogic.drop.Drop;
-import com.badlogic.drop.views.MainMenu;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -11,6 +12,7 @@ import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -24,14 +26,12 @@ import com.badlogic.gdx.utils.TimeUtils;
 
 import java.util.Iterator;
 
-import jdk.tools.jmod.Main;
-
 public class GameScreen implements Screen {
-    Game game;
+    Drop game;
 
     //Variables to load assets
     private Texture backgroundGame;
-    private Texture dropletBlue;
+    private Texture dropletBlue, dropletRed;
     private Texture bucketImage;
     public BitmapFont gameText;
     private Sound dropSound;
@@ -43,10 +43,15 @@ public class GameScreen implements Screen {
     //Rectangles to position Textures
     private Rectangle bucket;
     //List of rectangles for raindrops (Class array from libgdx, less garbage)
-    private Array<Rectangle> raindrops;
+    private Array<Rectangle> blueDropsArray;
+    private Array<Rectangle> redDropsArray;
     //Last time we spawned a drop, to keep track of it
-    private long lastDropTime; //Nanoseconds
-    int dropsGathered;
+    private long lastBlueDrop, lastRedDrop; //Nanoseconds
+    //Counter of total drops gathered, lives left, and good and bad streaks
+    //10 good streaks adds one life, 3 bad streaks takes a life. On 0 lives left, game over.
+    int totalDropsGathered, playerLives, goodStreak, badStreak;
+    //To add difficult, every life earned makes level +1, increasing speed.
+    int level = 1;
 
     public Music music;
     public Music rain;
@@ -57,7 +62,7 @@ public class GameScreen implements Screen {
     //Because this class doesn't extends from Game class, we don't have create() method.
     //So we use a Constructor
 
-    public GameScreen (Game game){
+    public GameScreen (Drop game){
         //Instantiate the game from Drop Class, new batch and camera
         this.game = game;
 
@@ -73,6 +78,7 @@ public class GameScreen implements Screen {
 
         // load the images for the droplet and the bucket, 64x64 pixels each
         dropletBlue   = new Texture(Gdx.files.internal("img/droplet_blue.png"));
+        dropletRed   = new Texture(Gdx.files.internal("img/droplet_red.png"));
         bucketImage   = new Texture(Gdx.files.internal("img/bucket.png"));
 
         // load the drop sound effect and the rain background "music"
@@ -84,9 +90,6 @@ public class GameScreen implements Screen {
         camera = new OrthographicCamera();
         camera.setToOrtho(false, 800, 480);
 
-        //Now spritebatch comes from Game class, use game.batch instead
-        //batch = game.batch;
-
         //Creating instance of rectangles and setting parameters
         bucket = new Rectangle();
         bucket.x = 800 / 2 - 64 / 2;
@@ -95,27 +98,14 @@ public class GameScreen implements Screen {
         bucket.height = 64;
 
         //Instantiating raindrops array and spawning drops on screen
-        raindrops = new Array<Rectangle>();
-        spawnRaindrop(); //Here we spawn the first time the raindrops
-    }
+        blueDropsArray = new Array<Rectangle>();
+        redDropsArray = new Array<Rectangle>();
+        //Here we spawn the first time the raindrops
+        spawnDrops();
 
-    /*
-	OWN METHODS
-	 */
+        //Lives to begin the match
+        playerLives = 1;
 
-    /**
-     * spawnRaindrop() is a method to facilitate the creation of raindrops.
-     * Instantiates a Rectangle object, and sets a random position at top edge of the screen
-     * Then it adds the drop to the raindrops array
-     */
-    private void spawnRaindrop() {
-        Rectangle raindrop = new Rectangle();
-        raindrop.x = MathUtils.random(0, 800-64); //random number between 0 and "800-64"
-        raindrop.y = 480;
-        raindrop.width = 64;
-        raindrop.height = 64;
-        raindrops.add(raindrop);
-        lastDropTime = TimeUtils.nanoTime();
     }
 
     /*
@@ -138,16 +128,17 @@ public class GameScreen implements Screen {
         //Draw the background picture
         batch.draw(bucketImage, bucket.x, bucket.y);
         //Every time a drops get collected, we show the number of drops at the left-top corner
-
-        gameText.draw(batch, "Gotas recogidas: " + dropsGathered, 40, 440);
-
+        //For every drop not collected, the player loses 1 life
+        gameText.setColor(Color.BLACK);
+        gameText.getData().setScale(1.3f);
+        gameText.draw(batch, "Gotas recogidas: " + totalDropsGathered, 40, 440);
+        gameText.draw(batch, "Vidas: " + playerLives + " Nivel: " + level, 630,440);
         //Draw raindrops
-        for (Rectangle raindrop: raindrops){
+        for (Rectangle raindrop: blueDropsArray){
             batch.draw(dropletBlue, raindrop.x, raindrop.y);
         }
         //End batch
         batch.end();
-
 
         /*
         USER TOUCH INPUTS
@@ -189,23 +180,65 @@ public class GameScreen implements Screen {
         }
 
         //After spawning the first time, we check time passed and spawn again
-        if(TimeUtils.nanoTime() - lastDropTime > 1000000000){
-            spawnRaindrop();
+        //Lets increase the difficulty in each level increase!!
+        int levelCase = Math.min(level, 5);
+        switch (levelCase){
+            case 5:
+                if (TimeUtils.nanoTime() - lastBlueDrop > 200000000) {
+                    spawnDrops();
+                }
+                break;
+            case 4:
+                if (TimeUtils.nanoTime() - lastBlueDrop > 400000000) {
+                    spawnDrops();
+                }
+                break;
+            case 3:
+                if (TimeUtils.nanoTime() - lastBlueDrop > 600000000) {
+                    spawnDrops();
+                }
+                break;
+            case 2:
+                if (TimeUtils.nanoTime() - lastBlueDrop > 800000000) {
+                    spawnDrops();
+                }
+                break;
+            default:
+                if (TimeUtils.nanoTime() - lastBlueDrop > 1000000000) {
+                    spawnDrops();
+                }
         }
 
-        //Making raindrops movement at 200pps. If the raindrop reaches the bottom of the screen, then remove it
-        for (Iterator<Rectangle> iter = raindrops.iterator(); iter.hasNext();) {
+
+        for (Iterator<Rectangle> iter = blueDropsArray.iterator(); iter.hasNext();) {
             Rectangle raindrop = iter.next();
-            raindrop.y -= 200 * Gdx.graphics.getDeltaTime();
+            //Making raindrops movement at 200pps. We can add 5pps eachtime we reach 15 extra drops
+            raindrop.y -= 200 * Gdx.graphics.getDeltaTime() + level*2;
             //If the raindrop reaches the bottom of the screen, then remove it
             if(raindrop.y + 64 < 0){
                 iter.remove();
+                badStreak++;
+                goodStreak = 0;
             }
             //If the raindrop hits the bucket, it should get into it. So we remove it and play the drop sound.
             if(raindrop.overlaps(bucket)) {
-                dropsGathered++;
+                totalDropsGathered++;
+                goodStreak++;
+                badStreak = 0;
                 dropSound.play();
                 iter.remove();
+            }
+            if (goodStreak >= 10){
+                playerLives++;
+                level++;
+                goodStreak = 0;
+            }
+            if (badStreak >= 3){
+                playerLives--;
+                badStreak = 0;
+            }
+            if (playerLives <= 0){
+                gameIsOver();
             }
         }
     }
@@ -256,6 +289,24 @@ public class GameScreen implements Screen {
         batch.dispose();
     }
 
+    /*
+	OWN METHODS
+	 */
+    /**
+     * spawnRaindrop() is a method to facilitate the creation of raindrops.
+     * Instantiates a Rectangle object, and sets a random position at top edge of the screen
+     * Then it adds the drop to the raindrops array
+     */
+    private void spawnDrops() {
+        Rectangle raindrop = new Rectangle();
+        raindrop.x = MathUtils.random(0, 800-64); //random X position between 0 and "800-64"
+        raindrop.y = 480; //Always starts at 480 Y
+        raindrop.width = 64;
+        raindrop.height = 64;
+        blueDropsArray.add(raindrop);
+        lastBlueDrop = TimeUtils.nanoTime();
+    }
+
     public void actionForESCKey(){
         //Creating an inputProcessor to handle back key actions
         InputProcessor backProcessor = new InputAdapter(){
@@ -267,7 +318,7 @@ public class GameScreen implements Screen {
                     rain.stop();
                     music.dispose();
                     rain.dispose();
-                    game.setScreen(new MainMenu((Drop) game));
+                    game.setScreen(new MainMenu(game));
                     return false;
                 }
                 return false;
@@ -279,6 +330,15 @@ public class GameScreen implements Screen {
 
         //Catch back key press to avoid bad exiting the app
         Gdx.input.setCatchKey(Input.Keys.BACK, true);
+    }
+
+    public void gameIsOver(){
+        Gdx.app.log("MARTIN DEBUG", "Game is over");
+        music.stop();
+        rain.stop();
+        music.dispose();
+        rain.dispose();
+        game.setScreen(new GameOverView(game,this));
     }
 
 

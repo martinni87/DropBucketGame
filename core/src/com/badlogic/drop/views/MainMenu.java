@@ -8,6 +8,7 @@ import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -78,7 +79,11 @@ public class MainMenu implements Screen {
         batch.begin();
 
         batch.draw(background, 0, 0);
+        titleBmp.setColor(Color.BLUE);
+        titleBmp.getData().setScale(1.5f);
         titleBmp.draw(batch, titleMsg, 50,100);
+        subtitleBmp.setColor(Color.YELLOW);
+        subtitleBmp.getData().setScale(1.5f);
         subtitleBmp.draw(batch, subtitleMsg, 100,240);
 
         batch.end();
